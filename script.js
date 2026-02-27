@@ -1,29 +1,13 @@
-const ACCESS_PASSWORD = "Qdd-38fne56Jfs"; // 設定您的密碼
+// 1. 先定義密碼與基礎變數
+const ACCESS_PASSWORD = "Qdd-38fne56Jfs"; // 請填入您的密碼
+const STORAGE_KEY = 'mqa_tracker_v2'; 
+const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbwxd1i_qCplVgTTfJQR6ec26GeyBYpLJyDwyzrKgwE7fB7YW1-Yj2PqZcJQOW849jzo/exechttps://script.google.com/macros/s/AKfycbycvp4p0SCQfjHDsa6H0s38yUCfIiKDoR4rQMAx2z1UvtmkcEb8Kklc17vsw-hHJpCW/exec';
 
-function checkAccess() {
-  const userPass = prompt("請輸入訪問密碼以繼續：");
-  if (userPass !== ACCESS_PASSWORD) {
-    alert("密碼錯誤，拒絕存取。");
-    document.body.innerHTML = "<h1>403 Forbidden: 未經授權的訪問</h1>";
-    return false;
-  }
-  return true;
-}
-
-// 修改原有的初始化邏輯
-if (checkAccess()) {
-  initApp(); // 原本啟動程式的函數
-}
 const COLOR_MATRIX = [
   ['#333333', '#2b5876', '#1a5e63', '#2d6a4f', '#d97706', '#b91c1c', '#6d28d9'],
   ['#666666', '#3b82f6', '#0891b2', '#10b981', '#fbbf24', '#ef4444', '#a855f7'],
   ['#f0f0f0', '#dbeafe', '#cffafe', '#d1fae5', '#fef3c7', '#fee2e2', '#f3e8ff']
 ];
-
-const STORAGE_KEY = 'mqa_tracker_v2'; 
-
-// --- 雲端設定區 ---
-const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbwxd1i_qCplVgTTfJQR6ec26GeyBYpLJyDwyzrKgwE7fB7YW1-Yj2PqZcJQOW849jzo/exec'; // <--- 請在此貼上您的 URL
 
 let state = {
   statuses: [{ id: 's1', name: '待處理', color: '#dbeafe' }],
@@ -33,6 +17,8 @@ let state = {
 
 let selectedColor = COLOR_MATRIX[1][1];
 let editingCardId = null;
+
+// --- 核心函數定義 (放在外面讓 HTML 點擊得到) ---
 
 function getContrastColor(hex) {
   if (!hex) return '#000';
@@ -150,32 +136,24 @@ function render() {
   });
 }
 
-// 僅儲存到本地，不頻繁請求雲端
 function saveLocalOnly() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   console.log("本地數據已暫存");
 }
 
-// --- 強化後的同步功能 (連動 Google Sheets) ---
 window.triggerCloudSync = async function() {
   const btn = document.querySelector('.toolbar .primary');
   const originalText = btn.textContent;
-  
   btn.textContent = "同步中...";
   btn.disabled = true;
 
   try {
-    // 1. 先執行本地儲存備份
     saveLocalOnly();
-
-    // 2. 發送到 Google Sheets (非同步上傳)
     await fetch(CLOUD_URL, {
       method: 'POST',
-      mode: 'no-cors', // 必須使用 no-cors 模式避開跨域限制
+      mode: 'no-cors',
       body: JSON.stringify(state)
     });
-
-    // 模擬成功延遲感，增加使用者回饋
     await new Promise(r => setTimeout(r, 1000));
     alert("雲端同步成功！數據已安全存入 Google 表格 A1。");
   } catch (e) {
@@ -247,5 +225,40 @@ function deleteStatus(id) { if(confirm('刪除狀態區？')) { state.statuses =
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 function loadState() { const s = localStorage.getItem(STORAGE_KEY); if (s) state = JSON.parse(s); }
 
-document.getElementById('openSettingsBtn').onclick = () => document.getElementById('settingsModal').style.display = 'flex';
-loadState(); render();
+// --- 啟動與權限檢查邏輯 ---
+
+async function initApp() {
+  document.getElementById('openSettingsBtn').onclick = () => document.getElementById('settingsModal').style.display = 'flex';
+  
+  // 先嘗試載入雲端數據 (如需要)
+  try {
+    const response = await fetch(CLOUD_URL);
+    if (response.ok) {
+      const cloudData = await response.json();
+      if (cloudData && cloudData.statuses) {
+        state = cloudData;
+        console.log("雲端數據載入成功");
+      }
+    }
+  } catch (e) {
+    console.log("從本地載入資料...");
+    loadState();
+  }
+  
+  render();
+}
+
+function checkAccess() {
+  const userPass = prompt("請輸入訪問密碼以繼續：");
+  if (userPass !== ACCESS_PASSWORD) {
+    alert("密碼錯誤，拒絕存取。");
+    document.body.innerHTML = "<h1>403 Forbidden: 未經授權的訪問</h1>";
+    return false;
+  }
+  return true;
+}
+
+// 最終啟動
+if (checkAccess()) {
+  initApp();
+}
