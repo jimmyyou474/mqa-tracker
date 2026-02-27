@@ -18,7 +18,7 @@ let state = {
 let selectedColor = COLOR_MATRIX[1][1];
 let editingCardId = null;
 
-// --- 3. 核心工具函數 (定義在全域，確保 HTML 可存取) ---
+// --- 3. 核心工具函數 (全域定義) ---
 
 function getContrastColor(hex) {
   if (!hex) return '#000';
@@ -41,7 +41,6 @@ function render() {
     section.dataset.id = st.id;
     section.style.backgroundColor = st.color;
     
-    // Status 拖曳邏輯
     section.addEventListener('dragstart', (e) => {
       if(e.target.className === 'status') section.classList.add('dragging');
     });
@@ -50,7 +49,6 @@ function render() {
       updateStatusOrder();
     });
 
-    // 接收卡片拖曳
     section.addEventListener('dragover', e => {
       e.preventDefault();
       const draggingCard = document.querySelector('.card.dragging-card');
@@ -136,43 +134,104 @@ function render() {
   });
 }
 
-// 僅存於瀏覽器暫存
 function saveLocalOnly() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  console.log("本地數據已暫存");
 }
 
-// --- 4. 雲端同步 (處理 CORS 問題) ---
+// --- 4. 雲端同步功能 ---
 window.triggerCloudSync = async function() {
   const btn = document.querySelector('.toolbar .primary');
-  if (!btn) return;
   const originalText = btn.textContent;
-  
   btn.textContent = "同步中...";
   btn.disabled = true;
 
   try {
     saveLocalOnly();
-
-    // 發送到 Google Sheets
     await fetch(CLOUD_URL, {
       method: 'POST',
-      mode: 'no-cors', // 避開 CORS 阻擋
+      mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(state)
     });
-
-    // no-cors 模式無法獲得回傳，我們模擬成功延遲
     await new Promise(r => setTimeout(r, 1200));
-    alert("雲端同步指令已發送！請檢查 Google 表格 A1 儲存格。");
+    alert("雲端同步指令已發送！請檢查 Google 表格。");
   } catch (e) {
     console.error("同步失敗:", e);
-    alert("同步請求出錯，請檢查網路。");
+    alert("同步出錯，請檢查網路。");
   } finally {
     btn.textContent = originalText;
     btn.disabled = false;
   }
 };
+
+// --- 5. 新增狀態與標籤管理邏輯 ---
+
+// 新增狀態
+function setupStatusLogic() {
+  const addBtn = document.getElementById('addStatusBtn');
+  if (addBtn) {
+    addBtn.onclick = () => {
+      const nameInput = document.getElementById('newStatusName');
+      const name = nameInput.value.trim();
+      if (name) {
+        state.statuses.push({ id: 's' + Date.now(), name: name, color: '#dbeafe' });
+        nameInput.value = '';
+        closeModal('statusModal');
+        render();
+        saveLocalOnly();
+      }
+    };
+  }
+}
+
+// 標籤管理介面渲染
+window.openTagManager = function() {
+  const tagListContainer = document.getElementById('tagManagerModal').querySelector('.modal-content');
+  const tagListHtml = state.globalTags.map(gt => `
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; background:rgba(255,255,255,0.5); padding:10px; border-radius:12px;">
+      <div style="width:20px; height:20px; border-radius:4px; background:${gt.color}"></div>
+      <span style="flex:1; font-weight:bold;">${gt.text}</span>
+      <button class="delete-btn" style="opacity:1; position:static;" onclick="deleteGlobalTag('${gt.uid}')">×</button>
+    </div>
+  `).join('');
+
+  tagListContainer.innerHTML = `
+    <div class="modal-header">標籤庫管理</div>
+    <div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">
+      ${tagListHtml || '<div style="text-align:center; color:#999; padding:20px;">目前尚無標籤</div>'}
+    </div>
+    <div class="grid" style="border-top:1px solid rgba(0,0,0,0.1); padding-top:20px;">
+      <label>新增標籤</label>
+      <input id="newTagName" placeholder="標籤名稱..." style="margin-bottom:10px;">
+      <div style="display:flex; gap:8px; margin-bottom:15px;">
+        ${COLOR_MATRIX[1].map(c => `<div onclick="selectedColor='${c}'" style="width:24px; height:24px; background:${c}; cursor:pointer; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px #ddd;"></div>`).join('')}
+      </div>
+      <button class="ghost" onclick="addGlobalTag()">+ 加入標籤庫</button>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal('tagManagerModal')">完成</button>
+    </div>
+  `;
+};
+
+window.addGlobalTag = function() {
+  const name = document.getElementById('newTagName').value.trim();
+  if (name) {
+    state.globalTags.push({ uid: 't' + Date.now(), text: name, color: selectedColor });
+    openTagManager();
+    saveLocalOnly();
+  }
+};
+
+window.deleteGlobalTag = function(uid) {
+  if (confirm('刪除此標籤？')) {
+    state.globalTags = state.globalTags.filter(t => t.uid !== uid);
+    openTagManager();
+    saveLocalOnly();
+  }
+};
+
+// --- 6. 彈窗與卡片基本操作 ---
 
 function updateStatusOrder() {
   const currentStatusElements = [...document.querySelectorAll('.status')];
@@ -185,7 +244,6 @@ function openCard(id) {
   editingCardId = id;
   const card = state.cards.find(c => c.id === id);
   if (!card) return;
-  
   document.getElementById('fieldName').value = card.title || '';
   document.getElementById('fieldLink').value = card.link || '';
   document.getElementById('fieldDesc').value = card.description || '';
@@ -193,14 +251,12 @@ function openCard(id) {
   document.getElementById('fieldId').value = card.number || '';
   document.getElementById('fieldStart').value = card.startDate || '';
   document.getElementById('fieldEnd').value = card.endDate || '';
-  
   renderTagSelector(card);
   document.getElementById('cardModal').style.display = 'flex';
 }
 
 function renderTagSelector(card) {
   const container = document.getElementById('cardTagSelector');
-  if (!container) return;
   container.innerHTML = state.globalTags.map(gt => {
     const isSelected = card.tags && card.tags.some(t => t.uid === gt.uid);
     return `<span class="badge ${isSelected ? '' : 'inactive'}" 
@@ -209,7 +265,7 @@ function renderTagSelector(card) {
   }).join('');
 }
 
-function toggleTag(tagUid) {
+window.toggleTag = function(tagUid) {
   const card = state.cards.find(c => c.id === editingCardId);
   if (!card.tags) card.tags = [];
   const idx = card.tags.findIndex(t => t.uid === tagUid);
@@ -219,68 +275,58 @@ function toggleTag(tagUid) {
     if (gTag) card.tags.push({...gTag});
   }
   renderTagSelector(card);
-}
+};
 
-// 綁定儲存按鈕
-const modalSaveBtn = document.getElementById('modalSave');
-if (modalSaveBtn) {
-  modalSaveBtn.onclick = () => {
-    const c = state.cards.find(x => x.id === editingCardId);
-    if (c) {
-      c.title = document.getElementById('fieldName').value;
-      c.link = document.getElementById('fieldLink').value;
-      c.description = document.getElementById('fieldDesc').value;
-      c.owner = document.getElementById('fieldOwner').value;
-      c.number = document.getElementById('fieldId').value;
-      c.startDate = document.getElementById('fieldStart').value;
-      c.endDate = document.getElementById('fieldEnd').value;
-    }
-    closeModal('cardModal'); render(); saveLocalOnly();
-  };
-}
+document.getElementById('modalSave').onclick = () => {
+  const c = state.cards.find(x => x.id === editingCardId);
+  if (c) {
+    c.title = document.getElementById('fieldName').value;
+    c.link = document.getElementById('fieldLink').value;
+    c.description = document.getElementById('fieldDesc').value;
+    c.owner = document.getElementById('fieldOwner').value;
+    c.number = document.getElementById('fieldId').value;
+    c.startDate = document.getElementById('fieldStart').value;
+    c.endDate = document.getElementById('fieldEnd').value;
+  }
+  closeModal('cardModal'); render(); saveLocalOnly();
+};
 
-function deleteCard(id) { if(confirm('刪除任務？')) { state.cards = state.cards.filter(c=>c.id!==id); render(); saveLocalOnly(); } }
-function deleteStatus(id) { if(confirm('刪除狀態區？')) { state.statuses = state.statuses.filter(s=>s.id!==id); render(); saveLocalOnly(); } }
-function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+window.deleteCard = function(id) { if(confirm('刪除任務？')) { state.cards = state.cards.filter(c=>c.id!==id); render(); saveLocalOnly(); } };
+window.deleteStatus = function(id) { if(confirm('刪除狀態區？')) { state.statuses = state.statuses.filter(s=>s.id!==id); render(); saveLocalOnly(); } };
+window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };
 function loadState() { const s = localStorage.getItem(STORAGE_KEY); if (s) state = JSON.parse(s); }
 
-// --- 5. 啟動與自動連動邏輯 ---
+// --- 7. 初始化與啟動 ---
 
 async function initApp() {
   document.getElementById('openSettingsBtn').onclick = () => document.getElementById('settingsModal').style.display = 'flex';
+  document.getElementById('openTagManagerBtn').onclick = () => { openTagManager(); document.getElementById('tagManagerModal').style.display = 'flex'; };
   
-  // 先載入本地暫存
+  setupStatusLogic();
   loadState();
   render();
 
-  // 接著嘗試同步雲端最新資料
   try {
     const response = await fetch(CLOUD_URL);
     if (response.ok) {
       const cloudData = await response.json();
       if (cloudData && cloudData.statuses) {
         state = cloudData;
-        console.log("雲端數據載入成功");
         saveLocalOnly();
         render();
       }
     }
-  } catch (e) {
-    console.warn("無法連接雲端，目前使用本地離線數據運作");
-  }
+  } catch (e) { console.warn("離線運作中"); }
 }
 
 function checkAccess() {
-  const userPass = prompt("這是受保護的工具，請輸入訪問密碼：");
+  const userPass = prompt("請輸入訪問密碼：");
   if (userPass !== ACCESS_PASSWORD) {
-    alert("密碼錯誤，拒絕存取。");
+    alert("密碼錯誤");
     document.body.innerHTML = "<h1 style='text-align:center; margin-top:100px;'>403 Forbidden</h1>";
     return false;
   }
   return true;
 }
 
-// 執行
-if (checkAccess()) {
-  initApp();
-}
+if (checkAccess()) { initApp(); }
