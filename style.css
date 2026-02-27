@@ -1,0 +1,111 @@
+:root {
+  --primary: #4a90e2;
+  --glass-bg: rgba(255, 255, 255, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --text-main: #2c3e50;
+  --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+}
+
+body {
+  font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+  background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  margin: 0; padding: 30px;
+}
+
+.project-header { text-align: left; margin-bottom: 25px; padding-left: 5px; }
+.project-header h1 { font-size: 2.2rem; font-weight: 800; color: #1a2a3a; margin: 0; letter-spacing: -0.5px; }
+.project-header .highlight { color: var(--primary); }
+
+.toolbar {
+  display: flex; gap: 15px; margin-bottom: 30px; align-items: center;
+  backdrop-filter: blur(10px) saturate(180%);
+  background: rgba(255, 255, 255, 0.2);
+  padding: 15px 25px; border-radius: 20px; border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow);
+}
+
+button {
+  padding: 10px 20px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--glass-border); background: var(--glass-bg);
+  backdrop-filter: blur(4px); transition: 0.3s; font-weight: 600;
+}
+button.primary { background: var(--primary); color: white; border: none; }
+button.secondary { color: var(--text-main); }
+button:hover { transform: translateY(-2px); background: rgba(255,255,255,0.7); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+
+.board { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; width: 100%; }
+
+.status {
+  flex: 0 0 calc((100% - 40px) / 3);
+  min-width: 320px;
+  backdrop-filter: blur(20px) saturate(180%);
+  background: var(--glass-bg); 
+  border-radius: 24px; padding: 20px;
+  border: 1px solid var(--glass-border); 
+  box-shadow: var(--shadow);
+  box-sizing: border-box;
+  transition: transform 0.2s, opacity 0.2s;
+  margin-bottom: 20px;
+}
+
+.status.dragging { opacity: 0.4; transform: scale(1.05); }
+.status-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; cursor: grab; }
+.status-header span { font-size: 1.35rem; font-weight: 900; }
+
+.cards { 
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; height: 362px; 
+  overflow-y: auto; overflow-x: hidden; padding-right: 4px; box-sizing: border-box; position: relative;
+}
+
+.cards:empty { overflow: hidden; }
+.cards:empty::after {
+  content: "暫無任務"; display: flex; align-items: center; justify-content: center; width: 100%; height: 80%;
+  grid-column: span 2; color: rgba(0, 0, 0, 0.15); font-size: 16px; font-weight: 600;
+  border: 2px dashed rgba(0, 0, 0, 0.05); border-radius: 20px; pointer-events: none; margin-bottom: 20px;
+}
+
+.cards::-webkit-scrollbar { width: 4px; }
+.cards::-webkit-scrollbar-track { background: transparent; }
+.cards::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.1); border-radius: 10px; }
+
+.card {
+  background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(5px);
+  border-radius: 18px; padding: 14px; position: relative;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: 0.2s;
+  cursor: grab; height: 175px; display: flex; flex-direction: column;
+  overflow: hidden; box-sizing: border-box;
+}
+.card.dragging-card { opacity: 0.3; border: 2px dashed var(--primary); }
+
+.card-title { font-weight: bold; padding-right: 25px; margin-bottom: 6px; color: #1a2a3a; font-size: 16px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.card-id-tag { font-family: monospace; font-size: 12px; color: #4a90e2; font-weight: 700; margin-bottom: 6px; }
+
+/* 修正日期對齊 */
+.card-meta-row { display: grid; grid-template-columns: 1fr auto; align-items: center; margin-bottom: 6px; min-height: 24px; }
+.card-date { font-size: 11px; color: #7f8c8d; display: flex; gap: 5px; align-items: center; white-space: nowrap; font-weight: 500; }
+.card-date span { font-size: 14px; }
+
+.card-link { text-decoration: none; font-size: 16px; color: #7f8c8d; background: transparent; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.3s ease; opacity: 0.7; grid-column: 2; }
+.card-link:hover { color: var(--primary); background: rgba(74, 144, 226, 0.1); opacity: 1; }
+.card-owner-info { font-size: 11.5px; color: #5d6d7e; margin-bottom: 8px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+
+.tag-container { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; height: 42px; align-content: flex-start; overflow: hidden; }
+.badge { padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+.delete-btn { position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 50%; background: rgba(255, 77, 79, 0.1); color: #ff4d4f; border: none; display: flex; align-items: center; justify-content: center; font-size: 15px; cursor: pointer; opacity: 0; transition: 0.2s; }
+.card:hover .delete-btn, .status:hover .delete-btn { opacity: 1; }
+.delete-btn:hover { background: #ff4d4f; color: white; }
+
+/* 彈窗 UI 優化 */
+.modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(15px); display: none; align-items: center; justify-content: center; z-index: 2000; }
+.modal-content { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(30px); padding: 40px; border-radius: 32px; width: 520px; border: 1px solid var(--glass-border); box-shadow: 0 30px 60px rgba(0,0,0,0.2); }
+.modal-header { font-size: 1.7rem; font-weight: 900; margin-bottom: 30px; color: #1a2a3a; letter-spacing: -0.5px; }
+.grid { display: flex; flex-direction: column; gap: 22px; }
+.modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+label { font-size: 13px; font-weight: 800; color: #444; text-transform: uppercase; margin-bottom: 8px; display: block; }
+input, textarea { width: 100%; padding: 15px; border: 1px solid rgba(0,0,0,0.1); border-radius: 14px; background: rgba(255,255,255,0.4); box-sizing: border-box; font-size: 16px; color: #1a2a3a; transition: 0.2s; }
+.modal-footer { margin-top: 40px; display: flex; justify-content: flex-end; gap: 15px; }
+button.ghost { grid-column: span 2; background: rgba(255,255,255,0.3); border: 1px dashed rgba(0,0,0,0.2); width: 100%; margin-top: 10px; font-size: 16px; padding: 15px; }

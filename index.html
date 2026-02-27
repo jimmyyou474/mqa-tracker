@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MQA Project Testing Tracker</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="app-container">
+    <header class="project-header">
+      <h1>MQA Project <span class="highlight">Testing Tracker</span></h1>
+    </header>
+
+    <div class="toolbar">
+      <button id="openSettingsBtn" class="secondary">⚙️ 設定</button>
+      <span style="flex:1"></span>
+      <button onclick="triggerCloudSync()" class="primary" style="background:rgba(39, 174, 96, 0.8);">同步數據</button>
+    </div>
+
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="modal" id="settingsModal">
+    <div class="modal-content" style="width: 350px;">
+      <div class="modal-header">系統設定</div>
+      <div class="grid">
+        <button id="openStatusModalBtn" class="ghost" style="text-align: left; padding: 15px;" onclick="document.getElementById('statusModal').style.display='flex'">+ 新增狀態區</button>
+        <button id="openTagManagerBtn" class="ghost" style="text-align: left; padding: 15px;" onclick="document.getElementById('tagManagerModal').style.display='flex'">+ 管理標籤庫</button>
+      </div>
+      <div class="modal-footer"><button onclick="closeModal('settingsModal')">關閉</button></div>
+    </div>
+  </div>
+
+  <div class="modal" id="statusModal">
+    <div class="modal-content">
+      <div class="modal-header">新增狀態</div>
+      <div class="grid">
+        <label>狀態名稱</label>
+        <input id="newStatusName" placeholder="例如：測試中..." />
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('statusModal')">取消</button>
+        <button class="primary" id="addStatusBtn">建立</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="cardModal">
+    <div class="modal-content">
+      <div class="modal-header">任務詳情</div>
+      <div class="grid">
+        <div class="input-group">
+          <label>任務名稱</label>
+          <input id="fieldName" placeholder="輸入任務..." />
+        </div>
+        <div class="input-group">
+          <label>相關連結 (URL)</label>
+          <input id="fieldLink" placeholder="https://..." />
+        </div>
+        <div class="input-group">
+          <label>詳細描述</label>
+          <textarea id="fieldDesc" rows="2"></textarea>
+        </div>
+        <div class="modal-row">
+          <div><label>開始日期</label><input type="date" id="fieldStart"></div>
+          <div><label>預期結束</label><input type="date" id="fieldEnd"></div>
+        </div>
+        <div class="modal-row">
+          <div><label>執行者</label><input id="fieldOwner" /></div>
+          <div><label>單號</label><input id="fieldId" /></div>
+        </div>
+        <div class="tag-selector-container">
+          <label>指派標籤</label>
+          <div id="cardTagSelector" class="tag-container"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('cardModal')">取消</button>
+        <button class="primary" id="modalSave">儲存變更</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="tagManagerModal">
+    <div class="modal-content">
+      <div class="modal-header">標籤庫管理</div>
+      <div class="modal-footer"><button onclick="closeModal('tagManagerModal')">完成</button></div>
+    </div>
+  </div>
+</body>
+</html>
