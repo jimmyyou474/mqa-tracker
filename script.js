@@ -1,5 +1,5 @@
 // 1. 先定義密碼與基礎變數
-const ACCESS_PASSWORD = "Qdd-38fne56Jfs"; // 請填入您的密碼
+const ACCESS_PASSWORD = "skyTechQaTkQoo233"; // 請填入您的密碼
 const STORAGE_KEY = 'mqa_tracker_v2'; 
 const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbycvp4p0SCQfjHDsa6H0s38yUCfIiKDoR4rQMAx2z1UvtmkcEb8Kklc17vsw-hHJpCW/exec';
 
