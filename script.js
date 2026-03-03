@@ -2,6 +2,7 @@
 const ACCESS_PASSWORD = "skyTechQaTkQoo233"; // 請填入您的密碼
 const STORAGE_KEY = 'mqa_tracker_v2'; 
 const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbycvp4p0SCQfjHDsa6H0s38yUCfIiKDoR4rQMAx2z1UvtmkcEb8Kklc17vsw-hHJpCW/exec';
+const CARD_LINK_PREFIX = "https://rajaplay.atlassian.net/browse/";
 
 const COLOR_MATRIX = [
   ['#dbeafe', '#f0f0f0', '#cffafe', '#d1fae5', '#fef3c7', '#fee2e2', '#f3e8ff'],
@@ -40,6 +41,75 @@ window.getContrastColor = function(hex) {
   if (!hex) return '#000';
   const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
   return (((r * 299) + (g * 587) + (b * 114)) / 1000 >= 128) ? '#000000' : '#ffffff';
+};
+window.openCardLink = function(event, number) {
+  event.stopPropagation(); // ✅ 不要觸發卡片點擊開 modal
+  if (!number) return;
+  const url = CARD_LINK_PREFIX + encodeURIComponent(number);
+  window.open(url, '_blank');
+};
+
+// ===== 狀態名稱雙擊編輯（只改名稱，不碰後面的統計數字）=====
+window.enableStatusEdit = function(el) {
+  const statusId = el.dataset.id;
+  const oldName = el.textContent.trim();
+
+  // 防止重複建立 input
+  if (el.querySelector('input')) return;
+
+  // 讓名稱區塊穩定，不會推擠 count
+  el.style.display = 'inline-block';
+  el.style.maxWidth = '70%';
+  el.style.verticalAlign = 'baseline';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = oldName;
+
+  // 外觀：像原文字，不要橢圓框、不放大
+  input.style.width = '100%';
+  input.style.fontSize = 'inherit';
+  input.style.fontFamily = 'inherit';
+  input.style.fontWeight = 'inherit';
+  input.style.lineHeight = '1';
+  input.style.height = '1em';
+  input.style.border = 'none';
+  input.style.borderRadius = '0';
+  input.style.background = 'transparent';
+  input.style.outline = 'none';
+  input.style.padding = '0';
+  input.style.margin = '0';
+  input.style.boxShadow = 'none';
+  input.style.appearance = 'none';
+  input.style.webkitAppearance = 'none';
+
+  el.textContent = '';
+  el.appendChild(input);
+
+  input.focus();
+  // 反白整段，避免游標從最後開始
+  input.setSelectionRange(0, input.value.length);
+
+  const save = () => {
+    const newName = input.value.trim() || oldName;
+
+    const st = state.statuses.find(s => s.id === statusId);
+    if (st) st.name = newName;
+
+    // 還原名稱文字（count 不在這個 span，完全不會被動到）
+    el.textContent = newName;
+
+    saveLocalOnly();
+    triggerCloudSync(true);
+    render(); // 讓畫面立即更新（包含 count）
+  };
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { el.textContent = oldName; }
+  });
+
+  input.addEventListener('blur', save);
 };
 
 // --- 3. 排序與渲染 ---
@@ -84,9 +154,20 @@ if (dragCard) {
     });
 
     const hColor = getContrastColor(st.color);
+    const cardCount = state.cards.filter(c => c.statusId === st.id).length;
+    const isBlocked = /blocked|卡住|阻塞|被卡|等待修正|waiting\s*fix/i.test(st.name);
+    section.className = 'status' + (isBlocked ? ' is-blocked' : '');
     section.innerHTML = `
       <div class="status-header">
-        <span style="color:${hColor}">${st.name}</span>
+        <span style="color:${hColor}">
+          ${isBlocked ? '🚧 ' : ''}
+          <span
+            class="status-name"
+            data-id="${st.id}"
+            ondblclick="window.enableStatusEdit(this)"
+          >${st.name}</span>
+          <span class="status-count"> (${cardCount})</span>
+        </span>
         <button class="delete-btn" style="color:${hColor}" onclick="window.deleteStatus('${st.id}')">×</button>
       </div>
       <div class="cards" id="cards-${st.id}"></div>
@@ -117,6 +198,12 @@ if (dragCard) {
         </div>
         <div class="tag-container">${tagsHtml}</div>
       `;
+      // ✅ 單號 hover + 點擊開新分頁（不影響拖曳）
+      const idTag = cardEl.querySelector('.card-id-tag');
+      if (idTag && card.number) {
+        idTag.classList.add('clickable-id');
+        idTag.addEventListener('click', (e) => window.openCardLink(e, card.number));
+      }
       container.appendChild(cardEl);
     });
 
